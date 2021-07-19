@@ -68,6 +68,7 @@ let setup_repository ~variant ~for_docker ~upgrade_opam =
   env "OPAMERRLOGLEN" "0" :: (* Show the whole log if it fails *)
   env "OPAMSOLVERTIMEOUT" "500" :: (* Increase timeout. Poor mccs is doing its best *)
   env "OPAMPRECISETRACKING" "1" :: (* Mitigate https://github.com/ocaml/opam/issues/3997 *)
+  (if Variant.is_macos variant then [] else [workdir "/home/opam"]) @
   [
     run "rm -rf opam-repository/";
     copy ["."] ~dst:"opam-repository/";

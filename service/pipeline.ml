@@ -127,7 +127,7 @@ let get_significant_available_pkg = function
 let build_with_cluster ~ocluster ~analysis ~lint ~master source =
   let pkgs = Current.map Analyse.Analysis.packages analysis in
   let pkgs = Current.map (List.filter_map get_significant_available_pkg) pkgs in
-  let build ~upgrade_opam ~lower_bounds ~revdeps label variant =
+  let build ?(with_tests = true) ~upgrade_opam ~lower_bounds ~revdeps label variant =
     let arch = Variant.arch variant in
     let pool = Conf.pool_of_arch variant in
     let platform = {Platform.label; pool; variant} in
@@ -155,14 +155,20 @@ let build_with_cluster ~ocluster ~analysis ~lint ~master source =
         in
         let image =
           let spec = build_spec ~platform ~upgrade_opam pkg in
-          Build.v ocluster ~label:"build" ~base ~spec ~master ~urgent source in
-        let tests =
-          let spec = test_spec ~platform ~upgrade_opam pkg in
-          Build.v ocluster ~label:"test" ~base ~spec ~master ~urgent source
+          Build.v ocluster ~label:"build" ~base ~spec ~master ~urgent source
         in
         let+ pkg = pkg
         and+ build = Node.action `Built image
-        and+ tests = Node.action `Built tests
+        and+ tests =
+          if with_tests then
+            let action =
+              let spec = test_spec ~platform ~upgrade_opam pkg in
+              Build.v ocluster ~label:"test" ~base ~spec ~master ~urgent source
+            in
+            let+ action = Node.action `Built action in
+            [Node.leaf ~label:"tests" action]
+          else
+            Current.return []
         and+ lower_bounds_check =
           if upgrade_opam && lower_bounds then
             let action =
@@ -179,7 +185,7 @@ let build_with_cluster ~ocluster ~analysis ~lint ~master source =
         in
         let label = OpamPackage.to_string pkg in
         Node.actioned_branch ~label build (
-          Node.leaf ~label:"tests" tests ::
+          tests @
           lower_bounds_check @
           revdeps
         )
@@ -217,7 +223,8 @@ let build_with_cluster ~ocluster ~analysis ~lint ~master source =
     let macos_distro = "macos-homebrew" in
     let macos = Variant.v ~arch:`X86_64 ~distro:macos_distro ~compiler:(default_compiler, None) in
     Current.list_seq begin
-      build ~upgrade_opam ~lower_bounds:false ~revdeps:false macos_distro macos ::
+      build ~with_tests:false (* TODO: Bug in macOS CI *)
+        ~upgrade_opam ~lower_bounds:false ~revdeps:false macos_distro macos ::
       linux_distributions
     end
   in

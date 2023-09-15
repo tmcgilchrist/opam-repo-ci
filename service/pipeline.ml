@@ -12,7 +12,7 @@ let default_compilers_full = Ocaml_version.Releases.[v4_14; v5_0] (* NOTE: Shoul
 let default_compilers = List.map Ocaml_version.with_just_major_and_minor default_compilers_full
 let opam_version = `Dev
 
-let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
+(* let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) () *)
 let hourly = Current_cache.Schedule.v ~valid_for:(Duration.of_hour 1) ()
 
 (* Link for GitHub statuses. *)

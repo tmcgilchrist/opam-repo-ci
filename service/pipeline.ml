@@ -13,6 +13,7 @@ let default_compilers = List.map Ocaml_version.with_just_major_and_minor default
 let opam_version = `Dev
 
 let weekly = Current_cache.Schedule.v ~valid_for:(Duration.of_day 7) ()
+let hourly = Current_cache.Schedule.v ~valid_for:(Duration.of_hour 1) ()
 
 (* Link for GitHub statuses. *)
 let url ~owner ~name ~hash = Uri.of_string (Fmt.str "https://opam.ci.ocaml.org/github/%s/%s/commit/%s" owner name hash)
@@ -140,7 +141,7 @@ let build_with_cluster ~ocluster ~analysis ~lint ~master source =
               Current.return (Build.FreeBSD (Variant.docker_tag variant))
           | `linux -> (* TODO: Use docker images as base for both macOS and linux *)
               let+ repo_id =
-                Docker.peek ~schedule:weekly ~arch:(Ocaml_version.to_docker_arch arch)
+                Docker.peek ~schedule:hourly ~arch:(Ocaml_version.to_docker_arch arch)
                   ("ocaml/opam:" ^ Variant.docker_tag variant)
               in
               Build.Docker (Current_docker.Raw.Image.of_hash repo_id)
